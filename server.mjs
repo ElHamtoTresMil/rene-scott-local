@@ -91,17 +91,24 @@ export function createApp({fetchImpl=fetch,ollamaBase='http://127.0.0.1:11434'}=
         const messages=validateMessages(body.messages);
         const out=await fetchImpl(ollamaBase+'/api/chat',{
           method:'POST',headers:{'content-type':'application/json'},
-          body:JSON.stringify({model:body.model,messages,stream:false}),
-          signal:AbortSignal.timeout(90000)
+          body:JSON.stringify({model:body.model,messages,stream:false,
+            // Some Qwen 3.x releases return thinking but no final content unless disabled.
+            ...(/^qwen3(?:\.[0-9]+)?(?::|[-/]|$)/i.test(body.model)?{think:false}:{}),
+            options:{num_predict:512}}),
+          signal:AbortSignal.timeout(120000)
         });
         if(!out.ok)throw fail(502,'OLLAMA_REQUEST_FAILED');
-        const text=(await out.json())?.message?.content;
+        const result=await out.json();
+        const text=result?.message?.content;
+        if((typeof text!=='string'||!text.trim())&&typeof result?.message?.thinking==='string'&&result.message.thinking.trim())
+          throw fail(502,'OLLAMA_THINKING_ONLY');
         if(typeof text!=='string'||!text.trim()||text.length>1048576)throw fail(502,'OLLAMA_INVALID_RESPONSE');
         send(res,200,{model:body.model,text,provider:'ollama-local'});return;
       }
       send(res,404,{error:'NOT_FOUND'});
     }catch(e){
-      send(res,e.status||503,{error:e.status?e.message:'LOCAL_SERVICE_UNAVAILABLE'});
+      const timedOut=e?.name==='TimeoutError'||e?.name==='AbortError';
+      send(res,e.status||(timedOut?504:503),{error:e.status?e.message:(timedOut?'OLLAMA_TIMEOUT':'LOCAL_SERVICE_UNAVAILABLE')});
     }
   });
 }
