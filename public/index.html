@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>René Scott Local — experimental</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+ <header><strong>René Scott</strong><span>Local · código abierto · prototipo independiente</span></header>
+ <main>
+  <section class="intro"><p class="eyebrow">SALA · R4D OSS</p><h1>IA local, de verdad.</h1><p>Esta es una base independiente. Ollama funciona en tu Mac. La conexión con cuentas ChatGPT y Claude permanece desactivada hasta validar las condiciones oficiales.</p></section>
+  <div class="agents" aria-label="Proveedores">
+   <div><b>Scott AI / Ollama</b><small id="ollama-status">Comprobando modelos locales…</small></div>
+   <div><b>Main / ChatGPT</b><small>Sin conectar · autorización pendiente</small></div>
+   <div><b>Claude</b><small>Sin conectar · autorización pendiente</small></div>
+  </div>
+  <section class="chat"><div class="tools"><label for="model">Modelo local</label><select id="model" disabled><option>Buscando…</option></select><button id="refresh" type="button">Actualizar</button></div>
+   <div id="messages" role="log" aria-live="polite"><div class="empty">Los mensajes de esta sesión solo se guardan en la memoria de esta pestaña. No hay historial persistente todavía.</div></div>
+   <form id="send"><label for="prompt">Mensaje para Ollama</label><textarea id="prompt" rows="3" maxlength="4000" placeholder="Escribe un mensaje…" required></textarea><button id="submit" type="submit" disabled>Enviar</button></form>
+   <p class="foot">Sin nube, sin claves de API y sin conexiones activas a ChatGPT o Claude. Puerto 4286: independiente de tus instancias 4276 y 4277.</p>
+  </section>
+ </main>
+ <script src="/app.js" defer></script>
+</body></html>
