@@ -11,7 +11,7 @@
   </div>
   <section class="chat"><div class="tools"><label for="model">Modelo local</label><select id="model" disabled><option>Buscando…</option></select><button id="refresh" type="button">Actualizar</button></div>
    <div id="messages" role="log" aria-live="polite"><div class="empty">Los mensajes de esta sesión solo se guardan en la memoria de esta pestaña. No hay historial persistente todavía.</div></div>
-   <form id="send"><label for="prompt">Mensaje para Ollama</label><textarea id="prompt" rows="3" maxlength="4000" placeholder="Escribe un mensaje…" required></textarea><button id="submit" type="submit" disabled>Enviar</button></form>
+   <form id="send"><label for="prompt">Mensaje para Ollama</label><textarea id="prompt" rows="3" maxlength="4000" placeholder="Escribe un mensaje…" required></textarea><button id="submit" type="submit" disabled>Enviar</button><p id="request-status" role="status" aria-live="polite"></p></form>
    <p class="foot">Sin nube, sin claves de API y sin conexiones activas a ChatGPT o Claude. Puerto 4286: independiente de tus instancias 4276 y 4277.</p>
   </section>
  </main>
