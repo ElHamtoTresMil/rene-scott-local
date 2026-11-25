@@ -47,3 +47,45 @@ test('No outward Ollama base URL is permitted',()=>{
  assert.throws(()=>createApp({fetchImpl:async()=>null,ollamaBase:'https://api.openai.com'}),{message:'OLLAMA_MUST_BE_LOOPBACK'});
  assert.throws(()=>createApp({fetchImpl:async()=>null,ollamaBase:'http://192.168.1.1:11434'}),{message:'OLLAMA_MUST_BE_LOOPBACK'});
 });
+
+async function customLive(t,fetchImpl){
+ const server=createApp({fetchImpl});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const url='http://127.0.0.1:'+server.address().port;
+ const token=(await (await fetch(url+'/api/session')).json()).csrf;
+ const post=async(model='qwen3.5:4b')=>fetch(url+'/api/chat',{
+  method:'POST',headers:{'content-type':'application/json','origin':url,'x-rs-session':token},
+  body:JSON.stringify({model,messages:[{role:'user',content:'hola'}]})
+ });
+ return {post};
+}
+test('Qwen 3.5 inference explicitly disables thinking and returns the final answer',async t=>{
+ let req=null;
+ const f=await customLive(t,async(url,options)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen3.5:4b'}]})};
+  req=JSON.parse(options.body);
+  return {ok:true,json:async()=>({message:{content:'Hola desde Qwen.'}})};
+ });
+ const res=await f.post();assert.equal(res.status,200);
+ const json=await res.json();assert.equal(json.text,'Hola desde Qwen.');
+ assert.equal(req.think,false);
+ assert.equal(req.options.num_predict,512);
+ assert.equal(req.stream,false);
+});
+test('Qwen thinking-only response reports an explicit error, not a fabricated answer',async t=>{
+ const f=await customLive(t,async(url,options)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen3.5:4b'}]})};
+  return {ok:true,json:async()=>({message:{content:'',thinking:'Synthetic reasoning'}})};
+ });
+ const res=await f.post();assert.equal(res.status,502);
+ assert.deepEqual(await res.json(),{error:'OLLAMA_THINKING_ONLY'});
+});
+test('Ollama timeout returns an explicit 504 diagnosis',async t=>{
+ const f=await customLive(t,async(url,options)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen3.5:4b'}]})};
+  throw Object.assign(Error('timed out'),{name:'TimeoutError'});
+ });
+ const res=await f.post();assert.equal(res.status,504);
+ assert.deepEqual(await res.json(),{error:'OLLAMA_TIMEOUT'});
+});

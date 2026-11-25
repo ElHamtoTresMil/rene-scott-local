@@ -21,11 +21,22 @@ $('send').addEventListener('submit',async event=>{
  if(!prompt||!model)return;
  const messages=[...state.messages,{role:'user',content:prompt}].slice(-12);
  state.busy=true;refreshButton();renderMessage('user',prompt);$('prompt').value='';
+ $('request-status').textContent='Ollama está generando la respuesta… Un modelo local puede tardar al cargar.';
  try{
   const answer=await json('/api/chat',{method:'POST',headers:{'content-type':'application/json','x-rs-session':state.csrf},body:JSON.stringify({model,messages})});
   state.messages=[...messages,{role:'assistant',content:answer.text}].slice(-12);
   renderMessage('assistant',answer.text);
- }catch(error){renderMessage('assistant','Error local: '+error.message+' (el mensaje no se guardó).')}
- finally{state.busy=false;refreshButton()}
+ }catch(error){
+  const explanations={
+    OLLAMA_THINKING_ONLY:'El modelo devolvió razonamiento sin respuesta final. Prueba Llama 3.2 u otro modelo.',
+    OLLAMA_TIMEOUT:'Ollama tardó demasiado en responder. Prueba un modelo más ligero.',
+    OLLAMA_UNAVAILABLE:'Ollama no está disponible. Comprueba que el servicio esté iniciado.',
+    LOCAL_SERVICE_UNAVAILABLE:'No fue posible completar la consulta local a Ollama.',
+    OLLAMA_REQUEST_FAILED:'El modelo rechazó la solicitud.',
+    OLLAMA_INVALID_RESPONSE:'Ollama no devolvió una respuesta de texto válida.',
+    UNAUTHORIZED_LOCAL_REQUEST:'La sesión local no es válida. Recarga la página.'
+  };
+  renderMessage('assistant','Error local: '+(explanations[error.message]||error.message)+' (no se guardó el mensaje).');
+ }finally{state.busy=false;refreshButton();$('request-status').textContent='';}
 });
 (async()=>{try{state.csrf=(await json('/api/session')).csrf;await load()}catch{$('ollama-status').textContent='No se puede establecer la sesión local'}})();
